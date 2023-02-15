@@ -54,7 +54,7 @@ export const FormContainer = styled.div`
   flex-wrap: wrap;
 `
 
-export const StartContdownButton = styled.button`
+export const BaseContdownButton = styled.button`
   width: 100%;
   border: 0;
   padding: 1rem;
@@ -69,18 +69,30 @@ export const StartContdownButton = styled.button`
 
   cursor: pointer;
 
-  background: ${(props) => props.theme['green-500']};
   color: ${(props) => props.theme['gray-100']};
-
-  &:not(:disabled):hover {
-    background: ${(props) => props.theme['green-700']};
-  }
 
   &:disabled {
     opacity: 0.7;
     cursor: not-allowed;
   }
 `
+
+export const StartContdownButton = styled(BaseContdownButton)`
+  background: ${(props) => props.theme['green-500']};
+
+  &:not(:disabled):hover {
+    background: ${(props) => props.theme['green-700']};
+  }
+`
+
+export const StopContdownButton = styled(BaseContdownButton)`
+  background: ${(props) => props.theme['red-500']};
+
+  &:not(:disabled):hover {
+    background: ${(props) => props.theme['red-700']};
+  }
+`
+
 const BaseInput = styled.input`
   background: transparent;
   height: 2.5rem;

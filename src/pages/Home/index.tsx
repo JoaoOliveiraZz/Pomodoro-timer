@@ -1,8 +1,9 @@
 // Libs
-import { Play } from 'phosphor-react'
+import { HandPalm, Play } from 'phosphor-react'
 import { useForm } from 'react-hook-form'
 import * as zod from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { differenceInSeconds } from 'date-fns'
 
 // Styles
 import {
@@ -12,9 +13,10 @@ import {
   MinutesAmountInput,
   Separator,
   StartContdownButton,
+  StopContdownButton,
   TaskInput,
 } from './style'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const newCicleFormValidationSchema = zod.object({
   task: zod.string().min(1, 'Informe a tarefa'),
@@ -30,6 +32,8 @@ interface Cycle {
   id: string
   task: string
   minutesAmount: number
+  startDate: Date
+  interruptDate?: Date
 }
 
 export function Home() {
@@ -42,6 +46,7 @@ export function Home() {
   })
   const [cycles, setCycles] = useState<Cycle[]>([])
   const [activeCycleId, setActiveCycleId] = useState<string | null>(null)
+  const [amountSecondsPassed, setAmountSecondsPassed] = useState(0)
 
   function handleCreateCicle(data: newCicleFormData) {
     const id = String(new Date().getTime())
@@ -50,14 +55,59 @@ export function Home() {
       id,
       task: data.task,
       minutesAmount: data.minutesAmount,
+      startDate: new Date(),
     }
 
     setCycles((prev) => [...prev, newCycle])
     setActiveCycleId(id)
+    setAmountSecondsPassed(0)
     reset()
   }
 
+  function handleInterruptCycle() {
+    setCycles(
+      cycles.map((cycle) => {
+        if (cycle.id === activeCycleId) {
+          return { ...cycle, interruptDate: new Date() }
+        } else {
+          return cycle
+        }
+      }),
+    )
+    setActiveCycleId(null)
+  }
+
   const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId)
+
+  useEffect(() => {
+    let interval: number
+    if (activeCycle) {
+      interval = setInterval(() => {
+        setAmountSecondsPassed(
+          differenceInSeconds(new Date(), activeCycle.startDate),
+        )
+      }, 1000)
+    }
+
+    return () => {
+      clearInterval(interval)
+    }
+  }, [activeCycle])
+
+  const totalSeconds = activeCycle ? activeCycle.minutesAmount * 60 : 0
+  const currentSeconds = totalSeconds ? totalSeconds - amountSecondsPassed : 0
+
+  const minutesAmount = Math.floor(currentSeconds / 60)
+  const secondsAmount = currentSeconds % 60
+
+  const minutes = String(minutesAmount).padStart(2, '0')
+  const seconds = String(secondsAmount).padStart(2, '0')
+
+  useEffect(() => {
+    if (activeCycle) {
+      document.title = `${minutes}:${seconds}`
+    }
+  }, [minutes, seconds, activeCycle])
 
   const task = watch('task')
   const isDisabledSubmit = !task
@@ -72,6 +122,7 @@ export function Home() {
             placeholder="Dê um nome à sua tarefa"
             type="text"
             id="Task"
+            disabled={!!activeCycle}
             {...register('task')}
           />
 
@@ -88,25 +139,31 @@ export function Home() {
             id="minutesAmount"
             placeholder="00"
             step={5}
-            // min={5}
-            // max={60}
+            disabled={!!activeCycle}
             {...register('minutesAmount', { valueAsNumber: true })}
           />
 
           <span>minutos.</span>
         </FormContainer>
         <CountdownContainer>
-          <span>0</span>
-          <span>0</span>
+          <span>{minutes[0]}</span>
+          <span>{minutes[1]}</span>
           <Separator>:</Separator>
-          <span>0</span>
-          <span>0</span>
+          <span>{seconds[0]}</span>
+          <span>{seconds[1]}</span>
         </CountdownContainer>
 
-        <StartContdownButton disabled={isDisabledSubmit} type="submit">
-          <Play />
-          Começar
-        </StartContdownButton>
+        {activeCycle ? (
+          <StopContdownButton onClick={handleInterruptCycle} type="button">
+            <HandPalm />
+            Interromper
+          </StopContdownButton>
+        ) : (
+          <StartContdownButton disabled={isDisabledSubmit} type="submit">
+            <Play />
+            Começar
+          </StartContdownButton>
+        )}
       </form>
     </HomeContainer>
   )
